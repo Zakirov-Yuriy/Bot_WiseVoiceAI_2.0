@@ -18,7 +18,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 from .config import (
     ASSEMBLYAI_BASE_URL, HEADERS, API_TIMEOUT, FFMPEG_DIR,
-    SEGMENT_DURATION, OPENROUTER_API_KEY, FONT_PATH,
+    SEGMENT_DURATION, OPENROUTER_API_KEYS, FONT_PATH,
     YOOMONEY_WALLET, SUBSCRIPTION_AMOUNT
 )
 
@@ -363,12 +363,34 @@ def format_results_plain(segments: list[dict]) -> str:
     return "\n\n".join(seg["text"] for seg in segments)
 
 
-def generate_summary_timecodes(segments: list[dict]) -> str:
+def _call_openrouter_with_key_rotation(messages: list[dict], model: str = "z-ai/glm-4.5-air:free", temperature: float = 0.2, timeout: int = 60) -> str:
+    """Вызывает OpenRouter API с ротацией ключей при неудаче."""
     url = "https://openrouter.ai/api/v1/chat/completions"
-    headers = {
-        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-        "Content-Type": "application/json"
+    data = {
+        "model": model,
+        "messages": messages,
+        "temperature": temperature
     }
+
+    for api_key in OPENROUTER_API_KEYS:
+        try:
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
+            }
+            response = requests.post(url, headers=headers, data=json.dumps(data), timeout=timeout)
+            response.raise_for_status()
+            result = response.json()
+            return result['choices'][0]['message']['content'].strip()
+        except Exception as e:
+            logger.warning(f"Ключ {api_key[:10]}... не сработал: {str(e)}")
+            continue  # Пробуем следующий ключ
+
+    # Если все ключи не сработали, вызываем исключение
+    raise RuntimeError("Все OpenRouter API ключи не сработали")
+
+
+def generate_summary_timecodes(segments: list[dict]) -> str:
     full_text_with_timestamps = ""
     for i, seg in enumerate(segments):
         start_minute = i * SEGMENT_DURATION // 60
@@ -376,32 +398,29 @@ def generate_summary_timecodes(segments: list[dict]) -> str:
         start_code = f"{start_minute:02}:{start_second:02}"
         full_text_with_timestamps += f"[{start_code}] {seg['text']}\n\n"
     prompt = f"""
-Проанализируй полную расшифровку аудио с тайм-кодами и создай структурированное оглавление.
+Проанализируй полную расшифровку аудио с тайм-кодами и создай структурированное оглавление с краткими суммами.
 Текст с тайм-кодами:
 {full_text_with_timestamps}
 Инструкции:
-1. Выдели ОСНОВНЫЕ смысловые блоки и темы
+1. Выдели ОСНОВНЫЕ смысловые блоки и темы разговора
 2. Группируй несколько последовательных сегментов в один логический блок
 3. Для каждого блока укажи время начала
-4. Дай емкое описание содержания блока
+4. Дай краткое, но информативное описание содержания блока (не более 1-2 предложений)
 5. Сохраняй хронологический порядок
-Формат ответа:
+6. Используй русский язык для описаний
+Формат ответа (ТОЧНО следуй этому формату):
 Тайм-коды
-MM:SS - [Основная тема/событие]
-[Дополнительные детали]
-MM:SS - [Следующая основная тема]
+00:00 - [Краткое описание первого блока]
+[Дополнительные детали если нужно]
+01:00 - [Краткое описание второго блока]
 ...
 """
-    data = {
-        "model": "z-ai/glm-4.5-air:free",
-        "messages": [{"role": "user", "content": prompt}],
-        "temperature": 0.2
-    }
+    messages = [{"role": "user", "content": prompt}]
     try:
-        response = requests.post(url, headers=headers, data=json.dumps(data), timeout=60)
-        response.raise_for_status()
-        return response.json()['choices'][0]['message']['content'].strip()
-    except Exception:
+        return _call_openrouter_with_key_rotation(messages, model="z-ai/glm-4.5-air:free", temperature=0.2)
+    except Exception as e:
+        logger.error(f"OpenRouter API failed: {str(e)}")
+        # Fallback to raw timestamps
         fallback_result = "Тайм-коды\n\n"
         for i, seg in enumerate(segments):
             start_minute = i * SEGMENT_DURATION // 60

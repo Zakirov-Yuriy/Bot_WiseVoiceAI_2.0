@@ -82,7 +82,7 @@ FFMPEG_DIR = os.getenv("FFMPEG_PATH", "")
 # =============================
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 ASSEMBLYAI_API_KEY = os.getenv("ASSEMBLYAI_API_KEY")
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+OPENROUTER_API_KEYS = [key.strip() for key in os.getenv("OPENROUTER_API_KEYS", "").split(",") if key.strip()]
 
 # Опционально: включение/выключение платежей
 ENABLE_PAYMENTS = os.getenv("ENABLE_PAYMENTS", "false").lower() in ("1", "true", "yes")

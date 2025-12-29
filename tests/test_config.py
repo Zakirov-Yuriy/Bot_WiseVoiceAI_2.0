@@ -13,7 +13,7 @@ def test_config_loads_successfully(monkeypatch, mocker):
     # Set all required environment variables to dummy values
     monkeypatch.setenv('TELEGRAM_BOT_TOKEN', 'dummy')
     monkeypatch.setenv('ASSEMBLYAI_API_KEY', 'dummy')
-    monkeypatch.setenv('OPENROUTER_API_KEY', 'dummy')
+    monkeypatch.setenv('OPENROUTER_API_KEYS', 'dummy1,dummy2')
     monkeypatch.setenv('YOOMONEY_WALLET', 'dummy')
     monkeypatch.setenv('YOOMONEY_CLIENT_ID', 'dummy')
     monkeypatch.setenv('YOOMONEY_CLIENT_SECRET', 'dummy')
@@ -34,7 +34,7 @@ def test_config_raises_error_on_missing_env_var(monkeypatch, mocker):
     # Ensure all variables are set initially
     monkeypatch.setenv('TELEGRAM_BOT_TOKEN', 'dummy')
     monkeypatch.setenv('ASSEMBLYAI_API_KEY', 'dummy')
-    monkeypatch.setenv('OPENROUTER_API_KEY', 'dummy')
+    monkeypatch.setenv('OPENROUTER_API_KEYS', 'dummy1,dummy2')
     monkeypatch.setenv('YOOMONEY_WALLET', 'dummy')
     monkeypatch.setenv('YOOMONEY_CLIENT_ID', 'dummy')
     monkeypatch.setenv('YOOMONEY_CLIENT_SECRET', 'dummy')
