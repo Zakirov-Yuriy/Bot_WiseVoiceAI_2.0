@@ -17,7 +17,7 @@ from reportlab.lib.styles import getSampleStyleSheet
 from PIL import Image, ImageDraw, ImageFont
 
 from .config import (
-    ASSEMBLYAI_BASE_URL, HEADERS, API_TIMEOUT, FFMPEG_DIR,
+    ASSEMBLYAI_BASE_URL, HEADERS, API_TIMEOUT, FFMPEG_PATH,
     SEGMENT_DURATION, OPENROUTER_API_KEYS, FONT_PATH,
     YOOMONEY_WALLET, SUBSCRIPTION_AMOUNT
 )
@@ -187,9 +187,8 @@ class AudioProcessor:
     def split_audio(input_path: str, segment_time: int = SEGMENT_DURATION) -> list[str]:
         output_dir = tempfile.mkdtemp(prefix="fragments_")
         output_pattern = os.path.join(output_dir, "fragment_%03d.mp3")
-        ffmpeg_path = os.path.join(FFMPEG_DIR, "ffmpeg.exe")
         command = [
-            ffmpeg_path,
+            FFMPEG_PATH,
             "-i", input_path,
             "-f", "segment",
             "-segment_time", str(segment_time),
@@ -301,7 +300,7 @@ async def download_youtube_audio(url: str, progress_callback: callable = None) -
         ydl_opts = {
             "format": "bestaudio/best",
             "outtmpl": outtmpl,
-            "ffmpeg_location": FFMPEG_DIR,
+            "ffmpeg_location": FFMPEG_PATH,
             "progress_hooks": [progress_hook],
             "postprocessors": [{
                 "key": "FFmpegExtractAudio",
@@ -432,9 +431,8 @@ def generate_summary_timecodes(segments: list[dict]) -> str:
 
 async def convert_to_mp3(input_path: str) -> str:
     output_path = tempfile.NamedTemporaryFile(delete=False, suffix=".mp3").name
-    ffmpeg_path = os.path.join(FFMPEG_DIR, "ffmpeg.exe")
     command = [
-        ffmpeg_path,
+        FFMPEG_PATH,
         "-i", input_path,
         "-acodec", "libmp3lame",
         "-q:a", "2",

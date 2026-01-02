@@ -57,6 +57,7 @@ import os
 from dotenv import load_dotenv
 from pathlib import Path
 
+
 # =============================
 #      Загрузка окружения
 # =============================
@@ -142,5 +143,4 @@ SUPPORTED_FORMATS = {
 DEFAULT_FORMAT = "pdf"
 
 # Расширяем PATH, если FFMPEG_DIR задан вручную (но обычно не требуется)
-if FFMPEG_DIR:
-    os.environ["PATH"] = os.pathsep.join([os.environ.get("PATH", ""), FFMPEG_DIR])
+FFMPEG_PATH = os.getenv("FFMPEG_PATH", "/usr/bin/ffmpeg")
