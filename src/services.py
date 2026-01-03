@@ -509,6 +509,7 @@ THUMBNAIL_CACHE = {}
 
 def create_custom_thumbnail(thumbnail_path: str = None):
     cache_key = thumbnail_path or "default"
+    logger.info(f"Создание миниатюры: thumbnail_path={thumbnail_path}, cache_key={cache_key}")
     if cache_key in THUMBNAIL_CACHE:
         thumbnail_bytes = io.BytesIO(THUMBNAIL_CACHE[cache_key])
         thumbnail_bytes.seek(0)

@@ -300,8 +300,16 @@ async def process_audio_file_for_user(bot: Bot, message: types.Message, user_id:
             path, name = _save_with_format(timecodes_text, f"{EMOJI['timecodes']} Транскрипт с тайм-кодами")
             out_files.append((path, name))
 
-        thumbnail_bytes = services.create_custom_thumbnail(CUSTOM_THUMBNAIL_PATH) if chosen_ext == '.pdf' else None
-        thumbnail_file = BufferedInputFile(thumbnail_bytes.read(), filename="thumbnail.jpg") if thumbnail_bytes else None
+        thumbnail_bytes = services.create_custom_thumbnail(CUSTOM_THUMBNAIL_PATH)
+        logger.info(f"thumbnail_bytes: {thumbnail_bytes}, chosen_ext: {chosen_ext}")
+        if thumbnail_bytes:
+            thumbnail_bytes.seek(0)
+            thumbnail_data = thumbnail_bytes.read()
+            logger.info(f"thumbnail_data size: {len(thumbnail_data)}")
+            thumbnail_file = BufferedInputFile(thumbnail_data, filename="thumbnail.jpg")
+        else:
+            thumbnail_file = None
+        logger.info(f"thumbnail_file: {thumbnail_file}")
 
         for file_path, filename in out_files:
             try:
@@ -309,7 +317,7 @@ async def process_audio_file_for_user(bot: Bot, message: types.Message, user_id:
                     chat_id,
                     document=FSInputFile(file_path, filename=filename),
                     caption=filename.replace(chosen_ext, ""),
-                    thumbnail=thumbnail_file if chosen_ext == '.pdf' else None
+                    thumbnail=thumbnail_file
                 )
             except Exception as e:
                 logger.error(f"Ошибка отправки файла {file_path}: {e}")

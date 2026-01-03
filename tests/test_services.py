@@ -53,3 +53,29 @@ async def test_create_yoomoney_payment(mocker):
 
     # Check that the post method was called (for validation)
     mock_instance.__aenter__.return_value.post.assert_called_once()
+
+def test_create_custom_thumbnail():
+    """Tests creating a custom thumbnail."""
+    # Test with existing thumbnail path
+    thumbnail_path = "images/thumbnail.jpg"
+    result = services.create_custom_thumbnail(thumbnail_path)
+    assert result is not None
+    # Check that it's a BytesIO object
+    from io import BytesIO
+    assert isinstance(result, BytesIO)
+    # Check that we can read bytes
+    data = result.read()
+    assert len(data) > 0
+    # Check that it's JPEG
+    assert data.startswith(b'\xff\xd8')
+
+def test_create_custom_thumbnail_default():
+    """Tests creating default thumbnail when path is invalid."""
+    # Test with invalid path
+    thumbnail_path = "nonexistent.jpg"
+    result = services.create_custom_thumbnail(thumbnail_path)
+    assert result is not None
+    from io import BytesIO
+    assert isinstance(result, BytesIO)
+    data = result.read()
+    assert len(data) > 0

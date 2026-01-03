@@ -73,7 +73,7 @@ IMAGES_DIR = BASE_DIR / "images"
 
 # Относительные пути к ресурсам (если файла нет — обработай в коде по месту использования)
 FONT_PATH = os.getenv("FONT_PATH", str(FONTS_DIR / "DejaVuSans-ExtraLight.ttf"))
-CUSTOM_THUMBNAIL_PATH = os.getenv("CUSTOM_THUMBNAIL_PATH", str(IMAGES_DIR / "to.png"))
+CUSTOM_THUMBNAIL_PATH = os.getenv("CUSTOM_THUMBNAIL_PATH", str(IMAGES_DIR / "thumbnail.jpg"))
 
 # ffmpeg: в Railway путь не задаём, используем imageio-ffmpeg или системный ffmpeg
 FFMPEG_DIR = os.getenv("FFMPEG_PATH", "")
