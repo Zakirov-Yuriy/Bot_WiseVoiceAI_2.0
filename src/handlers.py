@@ -5,7 +5,8 @@ import time
 import asyncio
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command, CommandStart
-from aiogram.types import FSInputFile, BufferedInputFile
+from aiogram.types import FSInputFile, BufferedInputFile, LabeledPrice, PreCheckoutQuery
+from aiogram.enums import ContentType
 from aiogram.exceptions import TelegramBadRequest
 
 from . import database as db
@@ -37,27 +38,45 @@ async def start_handler(message: types.Message):
     logger.info(f"Команда /start выполнена для user_id {message.from_user.id}")
 
 async def subscription_handler(message: types.Message):
-    user_id = message.from_user.id
-    description = f"Подписка на Transcribe To на {SUBSCRIPTION_DURATION_DAYS} дней"
-    
-    payment_url, payment_label = await services.create_yoomoney_payment(
-        user_id=user_id,
-        amount=SUBSCRIPTION_AMOUNT,
-        description=description
+    await message.bot.send_invoice(
+        chat_id=message.chat.id,
+        title="⭐ Подписка на Transcribe To",
+        description=f"Полный доступ на {SUBSCRIPTION_DURATION_DAYS} дней",
+        payload="subscription_30_days",
+        provider_token="",
+        currency="XTR",
+        prices=[
+            LabeledPrice(
+                label=f"Подписка на {SUBSCRIPTION_DURATION_DAYS} дней",
+                amount=SUBSCRIPTION_AMOUNT
+            )
+        ]
     )
 
-    if payment_url:
-        await message.answer(
-            f"💳 Для оформления подписки перейдите по ссылке:\n[Оплатить подписку]({payment_url})\n"
-            f"Стоимость: {SUBSCRIPTION_AMOUNT} руб. на {SUBSCRIPTION_DURATION_DAYS} дней.\n"
-            "После оплаты подписка активируется автоматически.",
-            reply_markup=ui.create_menu_keyboard(),
-            parse_mode='Markdown'
+async def pre_checkout_handler(pre_checkout: PreCheckoutQuery):
+    await pre_checkout.bot.answer_pre_checkout_query(
+        pre_checkout.id,
+        ok=True
+    )
+
+async def successful_payment_handler(message: types.Message):
+    user_id = message.from_user.id
+    payload = message.successful_payment.invoice_payload
+
+    if payload == "subscription_30_days":
+        expiry_time = await db.activate_subscription(user_id)
+
+        expiry_str = time.strftime(
+            "%d.%m.%Y %H:%M",
+            time.localtime(expiry_time)
         )
-        logger.info(f"Ссылка на оплату отправлена для user_id {user_id}: {payment_label}")
-    else:
+
         await message.answer(
-            "❌ Не удалось создать ссылку на оплату. Пожалуйста, попробуйте позже.",
+            get_string(
+                'payment_success',
+                'ru',
+                expiry_date=expiry_str
+            ),
             reply_markup=ui.create_menu_keyboard()
         )
 
@@ -361,5 +380,10 @@ def register_handlers(dp: Dispatcher, bot: Bot):
     dp.message.register(settings_cmd, Command("settings"))
     dp.message.register(referral_cmd, Command("referral"))
     dp.message.register(support_cmd, Command("support"))
+    dp.pre_checkout_query.register(pre_checkout_handler)
+    dp.message.register(
+        successful_payment_handler,
+        lambda m: m.content_type == ContentType.SUCCESSFUL_PAYMENT
+    )
     dp.callback_query.register(callback_handler)
     dp.message.register(universal_handler)
